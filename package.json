@@ -1,0 +1,19 @@
+{
+  "name": "dayopa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "cd server && npm run start",
+    "build": "cd client && npm install && npm run build && cd ../server && npm install",
+    "test": "cd server && npm run test",
+    "dev": "cd server && npm run dev",
+    "build-and-start": "npm run build && npm run start"
+  },
+  "keywords": [],
+  "author": "Dan Moraru",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

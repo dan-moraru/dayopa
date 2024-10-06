@@ -1,0 +1,29 @@
+require('dotenv').config();
+//const { connectDB, closeDB } = require('../db/db.js');
+const app = require('../app.js');
+
+const uri = process.env.CONNECTION_STRING;
+const port = process.env.PORT || 3000;
+let server = null;
+
+/**
+ * Init server after connecting to database
+ */
+(async () => {
+  //await connectDB(uri);
+  server = app.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Server listening on port ${port}!`);
+  });
+
+  process.on('SIGINT', () => {
+    server.close(() => {
+      //closeDB();
+      // eslint-disable-next-line no-console
+      console.log(
+        'Server has been terminated and database connection has been closed'
+      );
+      process.exit(0);
+    });
+  });
+})();
