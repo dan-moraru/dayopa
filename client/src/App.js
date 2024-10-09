@@ -1,10 +1,11 @@
 import './App.css';
-import MontrealMap from './components/MontrealMap';
+//import MontrealMap from './components/MontrealMap';
+import GoogleMap from './components/GoogleMap';
 
 function App() {
   return (
     <div className="App">
-      <MontrealMap />
+      <GoogleMap />
     </div>
   );
 }
