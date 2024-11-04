@@ -1,11 +1,19 @@
-import { APIProvider, Map, AdvancedMarker } from '@vis.gl/react-google-maps';
+import { APIProvider, Map, AdvancedMarker, Pin } from '@vis.gl/react-google-maps';
 import { useState, useEffect } from 'react';
 
 export default function GoogleMap() {
     //{lat: 45.497766035959231000, lng: -73.575262282038665000}
     const [position, setPosition] = useState(null);
     //why default? 45.5278592 -73.5772672
+
     //Hec: {lat: 45.5029525, lng: -73.5647119}
+    const bornes = [
+        {lat: 45.497766035959231000, lng: -73.575262282038665000}, 
+        {lat: 45.497370795000144000, lng: -73.575377468633391000},
+        {lat: 45.476133819301850000, lng: -73.622012721872295000},
+        {lat: 45.477022702578182000, lng: -73.621425182451617000},
+        {lat: 45.513282874609885000, lng: -73.557018446590376000}
+    ]
 
     useEffect(() => {
         let watchId;
@@ -35,6 +43,11 @@ export default function GoogleMap() {
         };
     }, []);
 
+    function handleMarkerClick(borne, id) {
+        console.log("Marker clicked:", borne, "ID:", id);
+        // Perform any additional actions here, such as updating state or navigating
+    }    
+
     return (
         <APIProvider apiKey={process.env.REACT_APP_GOOGLE_MAP_KEY}>
             <Map
@@ -46,6 +59,15 @@ export default function GoogleMap() {
                 mapId={process.env.REACT_APP_GOOGLE_MAP_ID}
             >
                 {position && <AdvancedMarker position={position} />}
+                {bornes.map((borne, id) => (
+                    <AdvancedMarker key={id} position={borne} onClick={() => handleMarkerClick(borne, id)}>
+                        <Pin
+                            background={'RoyalBlue'}
+                            borderColor={'#000000'}
+                            glyphColor={'#ffffff'}
+                        />
+                    </AdvancedMarker>
+                ))}
             </Map>
       </APIProvider>
     );
