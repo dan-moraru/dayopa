@@ -10,7 +10,8 @@ import { useState, useEffect } from 'react';
 
 export default function GoogleMap() {
     //{lat: 45.497766035959231000, lng: -73.575262282038665000}
-    const [position, setPosition] = useState(null);
+    const [currentPos, setCurrentPos] = useState(null);
+    const [destinationPos, setDestinationPos] = useState(null);
     //why default? 45.5278592 -73.5772672
 
     //Hec: {lat: 45.5029525, lng: -73.5647119}
@@ -28,12 +29,14 @@ export default function GoogleMap() {
             watchId = navigator.geolocation.watchPosition(
                 (position) => {
                     const { latitude, longitude } = position.coords;
-                    setPosition({ lat: latitude, lng: longitude });
+                    setCurrentPos({ lat: latitude, lng: longitude });
                     console.log("Current Position:", latitude, longitude);
                 },
                 (error) => {
                     if (error.code === 1) {
-                        alert("Error: Access is denied!");
+                        if (document.readyState === 'complete') {
+                            alert("Error: Access is denied!");
+                        }
                     } else if (error.code !== 2) {
                         alert(`Error!:${error}`);
                     }
@@ -52,21 +55,21 @@ export default function GoogleMap() {
 
     function handleMarkerClick(borne, id) {
         console.log("Marker clicked:", borne, "ID:", id);
-        // Perform any additional actions here, such as updating state or navigating
+        setDestinationPos(borne);
     }    
 
     return (
         <APIProvider apiKey={process.env.REACT_APP_GOOGLE_MAP_KEY}>
             <Map
                 style={{width: '100vw', height: '100vh'}}
-                defaultCenter={position}
+                defaultCenter={currentPos}
                 defaultZoom={12}
                 gestureHandling={'greedy'}
                 disableDefaultUI={true}
                 mapId={process.env.REACT_APP_GOOGLE_MAP_ID}
             >
-                <Directions />
-                {position && <AdvancedMarker position={position} />}
+                <Directions currentPos={currentPos} destinationPos={destinationPos}/>
+                {currentPos && <AdvancedMarker position={currentPos} />}
                 {bornes.map((borne, id) => (
                     <AdvancedMarker key={id} position={borne} onClick={() => handleMarkerClick(borne, id)}>
                         <Pin
@@ -81,7 +84,7 @@ export default function GoogleMap() {
     );
 }
 // ADD DIRECTIONS CLASS DIV TO DISPLAY DIFFERENT ROUTES
-function Directions() {
+function Directions({ currentPos, destinationPos }) {
     const map = useMap();
     const routesLibrary = useMapsLibrary("routes");
     const [directionsService, setDirectionsService] = useState();
@@ -101,15 +104,15 @@ function Directions() {
         if (!directionsService || !directionsRenderer) return;
 
         directionsService.route({
-            origin: "3040 Sherbrooke St W, Montreal QC",
-            destination: "3000 Chem. de la Côte-Sainte-Catherine, Montreal QC",
+            origin: currentPos || "3040 Sherbrooke St W, Montreal QC",
+            destination: destinationPos || "3000 Chem. de la Côte-Sainte-Catherine, Montreal QC",
             travelMode: window.google.maps.TravelMode.DRIVING,
             provideRouteAlternatives: true,
         }).then(response => {
             directionsRenderer.setDirections(response);
             setRoutes(response.routes);
         });
-    }, [directionsService, directionsRenderer]);
+    }, [directionsService, directionsRenderer, currentPos, destinationPos]);
 
     console.log(routes);
 
