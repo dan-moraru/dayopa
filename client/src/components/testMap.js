@@ -39,14 +39,6 @@ const getDurationCanPark = (mainrule, signHour, startHourInDay) => {
 const applySign_ = (signRules, startTime, duration) => {
   const [startDayInYear, startDayInWeek, startTimeInDay] = startTime;
 
-  console.log(Array.isArray(signRules));  // Should print true if signRules is an array
-  console.log(signRules);
-  /*
-  
-  TODO: HEYYYYYY, so signRules is undefined and therefore not an array
-  Continue working from here
-  
-  */
   const forsummerRange = getForSummer(signRules);
   if (forsummerRange && (startDayInYear < forsummerRange[0] || startDayInYear > forsummerRange[1])) {
     return getMainRule(signRules) === 'noparking' ? 'green' : 'red';
@@ -63,7 +55,7 @@ const applySign_ = (signRules, startTime, duration) => {
     if (timeWeHave === -1) return 'red';
     return timeWeHave >= HALF_PARAM * duration ? 'green' : 'orange';
   }
-
+  
   return getMainRule(signRules) === 'noparking' ? 'red' : 'green';
 };
 
@@ -81,30 +73,37 @@ export default function TestMap() {
   const du = 16 * 60; // Duration in minutes
 
   useEffect(() => {
-    // Load and parse CSV file
     fetch('./parking_data.json')
-      .then((response) => response.text())
-      .then((csvText) => {
-        const jsonData = JSON.parse(csvText); // Parse the JSON text into an object
-       
-        // Filter and process parking data
-        const processedData = jsonData.map(sign => {
+    .then((response) => response.text())
+    .then((jsonText) => {
+      const jsonData = JSON.parse(jsonText); // Parse JSON data
+
+      // Filter and process parking data
+      const processedData = jsonData
+        .filter(sign => {
+          // Calculate distance from center and ensure parsed data exists
           const distance = Math.hypot(sign.Latitude - center[0], sign.Longitude - center[1]);
-          return distance < EPS_RADIUS && sign.parsed.length > 0; // Only consider valid signs within radius
-        }).map(sign => ({
+          return distance < EPS_RADIUS && sign.parsed.length > 0;
+        })
+        .map(sign => ({
           ...sign,
-          finalrescolor: applySign(sign.parsed, stTime, du) // Apply the color based on rules
+          // Add finalrescolor using applySign
+          finalrescolor: applySign(sign.parsed, stTime, du),
         }));
 
-        setParkingSigns(processedData); // Set processed parking signs in state
-      });
+      // Set processed data to state
+      setParkingSigns(processedData);
+    })
+    .catch((error) => {
+      console.error('Error loading or parsing parking data:', error);
+    });
   }, []);  // Only run once on mount
 
   // Define colors for the result
   const rescolors = ['green', 'orange', 'red'];
 
   return (
-    <MapContainer center={[45.5017, -73.5673]} zoom={11} style={{ height: '100vh', width: '100%' }}>
+    <MapContainer center={center} zoom={13} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -112,15 +111,18 @@ export default function TestMap() {
       {/* Render polylines for each parking sign */}
       {rescolors.map(color => (
         parkingSigns
-          .filter(sign => sign.finalrescolor === color) // Filter by color
+          .filter(sign => sign.finalrescolor === color) // Filter by final color
           .map((sign, idx) => (
             <Polyline
-              key={idx}
-              positions={[ // Define polyline coordinates
-                [sign.segmentX1, sign.segmentY1], // Start coordinates
-                [sign.segmentX2, sign.segmentY2]  // End coordinates
+              key={`${sign.POTEAU_ID_POT}-${idx}`} // Unique key using sign ID
+              positions={[
+                [sign.Latitude, sign.Longitude], // Use sign's coordinates
+                [sign.Latitude + 0.00001, sign.Longitude + 0.00001] // Example second point
+                //TODO: create segments so that its actually displayed on the correct street
+                // [sign.segmentX1, sign.segmentY1], // Start coordinates
+                // [sign.segmentX2, sign.segmentY2]  // End coordinates
               ]}
-              color={color}  // Set color based on rules
+              color={color}
             />
           ))
       ))}
