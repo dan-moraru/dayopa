@@ -67,13 +67,14 @@ const applySign = (signRules, startTimeInEpochMins, durationInMIns) => {
 
 export default function TestMap() {
   const [parkingSigns, setParkingSigns] = useState([]);
-  const center = [45.502376, -73.579273];
+  //const center = [45.502376, -73.579273]; //downtownMtl
+  const center = [45.440684, -73.685315]; //lachine
   const EPS_RADIUS = 0.02; // Radius around center
   const stTime = 24625450; // Example start time
   const du = 16 * 60; // Duration in minutes
 
   useEffect(() => {
-    fetch('./parking_data.json')
+    fetch('./sign_data_processed.json')
     .then((response) => response.text())
     .then((jsonText) => {
       const jsonData = JSON.parse(jsonText); // Parse JSON data
@@ -102,6 +103,10 @@ export default function TestMap() {
   // Define colors for the result
   const rescolors = ['green', 'orange', 'red'];
 
+  const handlePolylineClick = (sign) => {
+    console.log('Clicked on polyline:', sign);  // Log the entire object
+  };
+
   return (
     <MapContainer center={center} zoom={13} style={{ height: '100vh', width: '100%' }}>
       <TileLayer
@@ -116,13 +121,13 @@ export default function TestMap() {
             <Polyline
               key={`${sign.POTEAU_ID_POT}-${idx}`} // Unique key using sign ID
               positions={[
-                [sign.Latitude, sign.Longitude], // Use sign's coordinates
-                [sign.Latitude + 0.00001, sign.Longitude + 0.00001] // Example second point
-                //TODO: create segments so that its actually displayed on the correct street
-                // [sign.segmentX1, sign.segmentY1], // Start coordinates
-                // [sign.segmentX2, sign.segmentY2]  // End coordinates
+                [sign.segmentX1, sign.segmentY1], // Start coordinates
+                [sign.segmentX2, sign.segmentY2]  // End coordinates
               ]}
               color={color}
+              eventHandlers={{
+                click: () => handlePolylineClick(sign), // Attach the click event handler
+              }}
             />
           ))
       ))}
