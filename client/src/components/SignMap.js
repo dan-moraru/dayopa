@@ -65,10 +65,10 @@ const applySign = (signRules, startTimeInEpochMins, durationInMIns) => {
   return applySign_(signRules, startTime, durationInMIns);
 };
 
-export default function TestMap() {
+export default function SignMap() {
   const [parkingSigns, setParkingSigns] = useState([]);
-  //const center = [45.502376, -73.579273]; //downtownMtl
-  const center = [45.440684, -73.685315]; //lachine
+  //const center = [45.438950, -73.619296]; //lasalle
+  const center = [45.502376, -73.579273]; //downtown mtl
   const EPS_RADIUS = 0.02; // Radius around center
   const stTime = 24625450; // Example start time
   const du = 16 * 60; // Duration in minutes
