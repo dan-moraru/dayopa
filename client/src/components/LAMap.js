@@ -78,48 +78,36 @@ export default function LAMap() {
         setMarkers(merged);
     }
 
-    async function fetchDataWithIfModifiedSince() {
-        const headers = {};
-        if (lastModifiedRef.current) {
-            headers['If-Modified-Since'] = lastModifiedRef.current;
-        }
+    useEffect(() => {
+        let coordMapCache = null;
     
-        try {
+        (async () => {
+            const [apiData, coordMap] = await Promise.all([fetchAPI(), parseCSV()]);
+            coordMapCache = coordMap;
+            await loadAndMergeData(apiData, coordMap);
+        })();
+    
+        const interval = setInterval(async () => {
+            const headers = {};
+            if (lastModifiedRef.current) {
+                headers['If-Modified-Since'] = lastModifiedRef.current;
+            }
+    
             const response = await fetch('/api/data', { headers });
-    
             if (response.status === 304) {
                 console.log("No update: data unchanged.");
                 return;
             }
     
-            if (!response.ok) {
-                console.error("Fetch failed:", response.status);
-                return;
-            }
-    
             const newLastModified = response.headers.get('Last-Modified');
             const newData = await response.json();
-            const coordMap = await parseCSV();
-    
             lastModifiedRef.current = newLastModified;
-            await loadAndMergeData(newData, coordMap);
+    
+            await loadAndMergeData(newData, coordMapCache); // Use the cache
             console.log("Updated at:", newLastModified);
-        } catch (err) {
-            console.error("Error in fetchDataWithIfModifiedSince:", err);
-        }
-    }
-
-    useEffect(() => {
-        // Initial load
-        (async () => {
-            const [apiData, coordMap] = await Promise.all([fetchAPI(), parseCSV()]);
-            await loadAndMergeData(apiData, coordMap);
-        })();
-
-        // Poll every 1 seconds for updates
-        const interval = setInterval(fetchDataWithIfModifiedSince, 1000);
-        return () => clearInterval(interval); // Clean up on unmount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        }, 1000);
+    
+        return () => clearInterval(interval);
     }, []);
 
     return (
