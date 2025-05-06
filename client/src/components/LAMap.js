@@ -119,6 +119,7 @@ export default function LAMap() {
         // Poll every 1 seconds for updates
         const interval = setInterval(fetchDataWithIfModifiedSince, 1000);
         return () => clearInterval(interval); // Clean up on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return (
