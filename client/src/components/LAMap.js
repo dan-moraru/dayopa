@@ -8,6 +8,9 @@ import markerImage from '../img/marker-icon.png';
 import vacantMarker from '../img/emptySpotMarker.png';
 import occupiedMarker from '../img/occupiedSpotMarker.png';
 
+import UserLocation from './UserLocation';
+import RoutingLeaflet from './RoutingLeaflet';
+
 const defaultIcon = new Icon({
     iconUrl: markerImage,
     iconSize: [38, 38],
@@ -135,6 +138,11 @@ export default function LAMap() {
                     </Marker>
                 );
             })}
+            <UserLocation />
+            <RoutingLeaflet
+                origin={{ lat: 34.0522, lng: -118.2437 }}
+                destination={{ lat: 34.0622, lng: -118.2537 }}
+            />
         </MapContainer>
     );
 }
