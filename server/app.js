@@ -12,7 +12,7 @@ app.use(express.static('../client/build'));
 // Proxy route to fetch LA open data with optional If-Modified-Since
 app.get('/api/data', async (req, res) => {
     try {
-        const apiUrl = `https://data.lacity.org/resource/e7h6-4a3e.json?$limit=5000`;
+        const apiUrl = `https://data.lacity.org/resource/e7h6-4a3e.json?$limit=500`; // don't forget to change back limit
 
         const headers = {
             'X-App-Token': process.env.REACT_APP_LA_TOKEN || process.env.LA_TOKEN

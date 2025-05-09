@@ -9,7 +9,7 @@ import vacantMarker from '../img/emptySpotMarker.png';
 import occupiedMarker from '../img/occupiedSpotMarker.png';
 
 import UserLocation from './UserLocation';
-import RoutingLeaflet from './RoutingLeaflet';
+//import RoutingLeaflet from './RoutingLeaflet';
 
 const defaultIcon = new Icon({
     iconUrl: markerImage,
@@ -44,7 +44,8 @@ export default function LAMap() {
     async function parseCSV() {
         if (Object.keys(coordMapRef.current).length > 0) return coordMapRef.current;
 
-        const res = await fetch('./LADOT_Metered_Parking_Inventory___Policies_20250502.csv');
+        //const res = await fetch('./LADOT_Metered_Parking_Inventory___Policies_20250502.csv'); // desktop
+        const res = await fetch('./LADOT_Metered_Parking_Inventory___Policies_20250508.csv'); // laptop
         const text = await res.text();
         const csvData = Papa.parse(text, { header: true }).data;
 
@@ -139,10 +140,11 @@ export default function LAMap() {
                 );
             })}
             <UserLocation />
-            <RoutingLeaflet
-                origin={{ lat: 34.0522, lng: -118.2437 }}
-                destination={{ lat: 34.0622, lng: -118.2537 }}
-            />
         </MapContainer>
     );
 }
+
+// <RoutingLeaflet
+//      origin={{ lat: 34.0522, lng: -118.2437 }}
+//      destination={{ lat: 34.0622, lng: -118.2537 }}
+// />
