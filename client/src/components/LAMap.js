@@ -4,15 +4,13 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import Papa from 'papaparse';
 
-// Image imports (ensure paths are correct)
 import markerImage from '../img/marker-icon.png';
 import vacantMarker from '../img/emptySpotMarker.png';
 import occupiedMarker from '../img/occupiedSpotMarker.png';
 
 import UserLocation from './UserLocation';
-import RoutingMachine from './RoutingLeaflet'; // Import the new component
+import RoutingMachine from './RoutingLeaflet';
 
-// --- Icon Definitions ---
 const defaultIcon = new L.Icon({
     iconUrl: markerImage,
     iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -38]
@@ -25,51 +23,45 @@ const occupiedIcon = new L.Icon({
     iconUrl: occupiedMarker,
     iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -38]
 });
-// Special icon for the targeted vacant spot
+
 const targetVacantIcon = new L.Icon({
-    iconUrl: vacantMarker, // Or a distinct icon for "targeted vacant"
-    iconSize: [48, 48], // Slightly larger
+    iconUrl: vacantMarker,
+    iconSize: [48, 48],
     iconAnchor: [24, 48],
     popupAnchor: [0, -48],
-    // You can add a class name for CSS styling, e.g., to make it pulse
     className: 'blinking-target-icon' 
 });
 
-
-// --- Configuration Constants ---
-const RENDER_RADIUS_METERS = 750; // Increased radius for better context when routing
-const API_POLL_INTERVAL_MS = 1000; // Poll API every second
-const AUTO_ROUTE_DELAY_MS = 5000; // Delay for automatic routing after app load
+const RENDER_RADIUS_METERS = 750;
+const API_POLL_INTERVAL_MS = 1000;
 
 export default function LAMap() {
     const initialCenter = [34.0522, -118.2437]; // LA coordinates
     const mapRef = useRef(null); // To store the map instance
 
-    // --- State Variables ---
     const [allMarkersData, setAllMarkersData] = useState([]);
     const [filteredMarkers, setFilteredMarkers] = useState([]);
     const [userPosition, setUserPosition] = useState(null);
     
-    // Routing specific state
     const [isRoutingActive, setIsRoutingActive] = useState(false);
     const [routingTarget, setRoutingTarget] = useState(null); // { id, lat, lng, status }
-    const [routingMessage, setRoutingMessage] = useState(""); // For UI feedback
+    const [routingMessage, setRoutingMessage] = useState("");
 
     const lastModifiedRef = useRef(null);
     const coordMapRef = useRef({});
-    const autoRouteTimerRef = useRef(null); // To manage the auto-route timeout
-    const hasAutoRoutedOnceRef = useRef(false); // Ensure auto-route only triggers once initially
+    const autoRouteTimerRef = useRef(null); // To manage the auto-route timeout, might be redundant
+    const hasAutoRoutedOnceRef = useRef(false); // Ensure auto-route only triggers once initially, might be redundant
 
-
-    // --- Data Fetching and Parsing (Memoized) ---
+    // memoized data fetching
     const fetchAPIData = useCallback(async (isInitialFetch = false) => {
-        // ... (keep your existing fetchAPIData implementation)
         const headers = {
             'X-App-Token': process.env.REACT_APP_LA_TOKEN || process.env.LA_TOKEN
         };
+
         if (!isInitialFetch && lastModifiedRef.current) {
             headers['If-Modified-Since'] = lastModifiedRef.current;
         }
+
         try {
             const response = await fetch('/api/data', { headers });
             if (response.status === 304) return { data: null, lastModified: lastModifiedRef.current };
@@ -83,10 +75,10 @@ export default function LAMap() {
     }, []);
 
     const parseParkingSpotsCSV = useCallback(async () => {
-        // ... (keep your existing parseParkingSpotsCSV implementation)
         if (Object.keys(coordMapRef.current).length > 0) return coordMapRef.current;
         try {
-            const res = await fetch('./LADOT_Metered_Parking_Inventory___Policies_20250508.csv');
+            const res = await fetch('./LADOT_Metered_Parking_Inventory___Policies_20250502.csv'); // pc
+            //const res = await fetch('./LADOT_Metered_Parking_Inventory___Policies_20250508.csv'); // laptop
             if (!res.ok) throw new Error(`Failed to fetch CSV: ${res.status}`);
             const text = await res.text();
             const csvData = Papa.parse(text, { header: true, skipEmptyLines: true }).data;
@@ -107,7 +99,6 @@ export default function LAMap() {
         }
     }, []);
 
-    // --- Initial Data Load Effect ---
     useEffect(() => {
         const loadInitialData = async () => {
             try {
@@ -128,7 +119,7 @@ export default function LAMap() {
         loadInitialData();
     }, [fetchAPIData, parseParkingSpotsCSV]);
 
-    // --- API Polling Effect ---
+    // api polling
     useEffect(() => {
         const intervalId = setInterval(async () => {
             try {
@@ -153,7 +144,7 @@ export default function LAMap() {
         return () => clearInterval(intervalId);
     }, [fetchAPIData, parseParkingSpotsCSV]);
 
-    // --- Filter Markers in Radius Effect ---
+    // filter markers
     useEffect(() => {
         if (!userPosition || allMarkersData.length === 0) {
             setFilteredMarkers([]); return;
@@ -168,7 +159,7 @@ export default function LAMap() {
     }, [userPosition, allMarkersData]);
 
 
-    // --- Routing Logic ---
+    // routing
     const findAndInitiateRouting = useCallback((excludeSpotId = null) => {
         if (!userPosition || allMarkersData.length === 0) {
             setRoutingMessage("Waiting for your location or parking data...");
@@ -209,32 +200,7 @@ export default function LAMap() {
         }
     }, [userPosition, allMarkersData]);
 
-    // --- Effect for Auto-Routing on Load ---
-    useEffect(() => {
-        if (userPosition && allMarkersData.length > 0 && !isRoutingActive && !hasAutoRoutedOnceRef.current) {
-            // Clear any previous timer
-            if (autoRouteTimerRef.current) clearTimeout(autoRouteTimerRef.current);
-            
-            setRoutingMessage(`App loaded. Auto-routing in ${AUTO_ROUTE_DELAY_MS / 1000}s...`);
-            autoRouteTimerRef.current = setTimeout(() => {
-                if (!isRoutingActive) { // Check again in case user manually started
-                   const success = findAndInitiateRouting();
-                   if (success) {
-                       hasAutoRoutedOnceRef.current = true; // Mark that auto-route has attempted
-                   }
-                }
-            }, AUTO_ROUTE_DELAY_MS);
-        }
-        // Cleanup timer if component unmounts or dependencies change before timeout
-        return () => {
-            if (autoRouteTimerRef.current) {
-                clearTimeout(autoRouteTimerRef.current);
-            }
-        };
-    }, [userPosition, allMarkersData, isRoutingActive, findAndInitiateRouting]);
-
-
-    // --- Effect to Monitor Targeted Spot for Status Change (Re-routing) ---
+    // re-routing
     useEffect(() => {
         if (isRoutingActive && routingTarget && allMarkersData.length > 0) {
             const currentTargetInAllData = allMarkersData.find(spot => spot.id === routingTarget.id);
@@ -250,7 +216,6 @@ export default function LAMap() {
             }
         }
     }, [isRoutingActive, routingTarget, allMarkersData, findAndInitiateRouting]);
-
 
     // --- Event Handlers ---
     const handleLocationUpdate = useCallback((latLng) => {
@@ -282,7 +247,6 @@ export default function LAMap() {
         setIsRoutingActive(false); 
         // Consider finding next best spot after a delay or user action
     };
-
 
     return (
         <div style={{ position: 'relative', height: '100vh', width: '100%' }}>
@@ -346,10 +310,32 @@ export default function LAMap() {
                 )}
             </MapContainer>
 
+            <div style={{
+                position: 'absolute',
+                bottom: '0px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                zIndex: 500, // Ensure it's above the map
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                padding: '10px 15px',
+                borderTopLeftRadius: '50px',
+                borderTopRightRadius: '50px',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                maxWidth: '100%',
+                maxHeight: '15%',
+                height: '100vh',
+                width: '100vh',
+                textAlign: 'center'
+            }}>
+            </div>
+
             {/* UI for Routing Control and Messages */}
             <div style={{
                 position: 'absolute',
-                top: '10px',
+                bottom: '60px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 zIndex: 1000, // Ensure it's above the map
@@ -369,14 +355,14 @@ export default function LAMap() {
                         onClick={handleManualRouteButtonClick} 
                         style={{padding: '10px 15px', fontSize: '16px', cursor: 'pointer', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px'}}
                     >
-                        Find Nearest Vacant Spot
+                        GO!
                     </button>
                 ) : (
                     <button 
                         onClick={handleStopRoutingButtonClick}
                         style={{padding: '10px 15px', fontSize: '16px', cursor: 'pointer', backgroundColor: '#f44336', color: 'white', border: 'none', borderRadius: '5px'}}
                     >
-                        Stop Routing
+                        Stop
                     </button>
                 )}
                 {routingMessage && <p style={{margin: 0, fontSize: '14px', color: '#333'}}>{routingMessage}</p>}
