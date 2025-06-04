@@ -32,7 +32,7 @@ const targetVacantIcon = new L.Icon({
     className: 'blinking-target-icon' 
 });
 
-const RENDER_RADIUS_METERS = 750;
+const RENDER_RADIUS_METERS = 2000; // 750
 const API_POLL_INTERVAL_MS = 1000;
 
 export default function LAMap() {
